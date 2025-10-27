@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+     <link rel="icon" href="E:\Chrome Downloads\construction_24dp_E3E3E3.png">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website In Progress</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Define the custom font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* --- Matrix Canvas Styling --- */
+        #matrixCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1; /* Place behind all content */
+        }
+        
+        /* Custom styles for the Minesweeper Game Canvas */
+        #gameCanvas {
+            border: 2px solid #f59e0b; /* Amber border */
+            border-radius: 0.5rem; /* Rounded corners */
+            background-color: #f3f4f6; /* Light gray board background for clarity */
+            touch-action: none; /* Disable default touch behavior */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Active mode button styling */
+        .mode-active {
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.5); /* Yellow glow */
+            transform: scale(1.05);
+        }
+
+        /* Custom class for wide view transition */
+        .max-w-4xl {
+            max-width: 56rem; /* Tailwind's max-w-4xl equivalent (896px) */
+        }
+        
+        /* Apply transition to the card for a smooth zoom effect */
+        #mainContentCard {
+            transition: max-width 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<!-- Body is now black to match the matrix theme -->
+<body class="bg-black min-h-screen flex items-center justify-center p-4">
+
+    <!-- MATRIX BACKGROUND CANVAS (Fixed to cover the entire screen) -->
+    <canvas id="matrixCanvas"></canvas>
+
+    <!-- Content Card (Added ID for resizing) -->
+    <!-- The backdrop-blur and slight transparency help the matrix show through -->
+    <div id="mainContentCard" class="bg-white/90 backdrop-blur-sm p-8 md:p-12 rounded-xl shadow-2xl max-w-lg w-full text-center border-t-4 border-amber-500 z-10">
+        
+        <!-- Construction Icon (Wrench/Tools) -->
+        <svg class="w-16 h-16 mx-auto mb-6 text-amber-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor">
+            <path d="M756-120 537-339l84-84 219 219-84 84Zm-552 0-84-84 276-276-68-68-28 28-51-51v82l-28 28-121-121 28-28h82l-50-50 142-142q20-20 43-29t47-9q24 0 47 9t43 29l-92 92 50 50-28 28 68 68 90-90q-4-11-6.5-23t-2.5-24q0-59 40.5-99.5T701-841q15 0 28.5 3t27.5 9l-99 99 72 72 99-99q7 14 9.5 27.5T841-701q0 59-40.5 99.5T701-561q-12 0-24-2t-23-7L204-120Z"/>
+        </svg>
+
+        <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-3 tracking-tight">
+            Site Under Construction
+        </h1>
+
+        <!-- PROGRESS BAR / LOADING INDICATOR (MOVED HERE) -->
+        <div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden mb-2">
+            <!-- Progress set to 10% -->
+            <div class="h-2.5 bg-amber-500 rounded-full" style="width: 10%;" role="progressbar" aria-valuenow="10" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+        <p class="mb-8 text-sm text-gray-500">
+            Estimated launch: Soon! (Currently 10% Complete)
+        </p>
+        
+        <!-- Minigame Section -->
+        <div class="p-4 bg-gray-100 rounded-lg shadow-inner">
+            <h2 class="text-2xl font-bold text-gray-800 mb-3">While you wait... Play Minesweeper!</h2>
+            
+            <!-- Minesweeper Status Bar -->
+            <div class="flex justify-between items-center mb-4 p-2 bg-gray-200 rounded-lg shadow-inner border border-gray-300 font-mono">
+                
+                <!-- Mines Counter -->
+                <div class="p-1 px-3 bg-gray-800 text-red-500 rounded-lg shadow-inner font-extrabold text-lg w-16">
+                    <span id="minesRemaining">015</span>
+                </div>
+                
+                <!-- Reset Button (Face) -->
+                <button id="startGameButton" class="text-3xl p-1 bg-gray-300 rounded-full w-12 h-12 flex items-center justify-center shadow-md hover:bg-gray-400 transition active:shadow-inner" aria-label="Start New Game">
+                    😀
+                </button>
+                
+                <!-- Timer -->
+                <div class="p-1 px-3 bg-gray-800 text-red-500 rounded-lg shadow-inner font-extrabold text-lg w-16">
+                    <span id="timerDisplay">000</span>
+                </div>
+            </div>
+
+            <!-- Mode Selector (New Feature) -->
+            <div class="flex justify-center space-x-4 mb-4">
+                <button id="modeEasy" class="mode-button px-4 py-1 text-sm bg-blue-500 text-white font-bold rounded-lg shadow-md hover:bg-blue-600 transition active:shadow-inner" data-mode="easy">
+                    $10 \times 10$ (Easy)
+                </button>
+                <button id="modeChallenge" class="mode-button px-4 py-1 text-sm bg-gray-500 text-white font-bold rounded-lg shadow-md hover:bg-gray-600 transition active:shadow-inner" data-mode="challenge">
+                    $14 \times 14$ (Challenge)
+                </button>
+            </div>
+            
+            <canvas id="gameCanvas" width="300" height="300" class="w-full h-auto cursor-pointer" oncontextmenu="return false;"></canvas>
+
+            <!-- Message Box -->
+            <div id="messageBox" class="mt-4 text-lg font-bold text-center text-gray-800 min-h-[1.5rem]">
+                Click the face to start!
+            </div>
+        </div>
+        
+        <!-- Contact and Share Section -->
+        <div class="mt-8 pt-6 border-t border-gray-100">
+            <p class="text-sm text-gray-500 mb-2">Need to get in touch? Or share the fun?</p>
+            <div class="flex flex-col sm:flex-row justify-center items-center space-y-2 sm:space-y-0 sm:space-x-4">
+                
+                <!-- Email Link (mailto link confirmed) -->
+                <a href="mailto:Reid.anan@gmail.com" 
+                   id="emailLink"
+                   onclick="return copyEmailToClipboard(this, 'Reid.anan@gmail.com')" 
+                   class="text-amber-600 hover:text-amber-700 font-medium transition duration-150 ease-in-out cursor-pointer p-2 rounded-lg bg-amber-100/50 hover:bg-amber-200">
+                    Reid.anan@gmail.com
+                </a>
+
+                <!-- Share Button (Updated with Base64 Image) -->
+                <button id="shareButton" 
+                        onclick="shareGame()"
+                        class="flex items-center space-x-1 px-4 py-2 bg-amber-500 text-white font-bold rounded-lg shadow-md hover:bg-amber-600 transition duration-150 ease-in-out active:shadow-inner">
+                    <!-- Base64 PNG Share Icon -->
+                    <!-- The text element that holds "Share Page" -->
+                    <span id="shareText">Share Scores</span>
+                </button>
+
+                <!-- NEW: Wide View Button (Fullscreen equivalent) -->
+                <button id="toggleWideViewButton" 
+                        onclick="toggleWideView()"
+                        class="flex items-center space-x-1 px-4 py-2 bg-blue-500 text-white font-bold rounded-lg shadow-md hover:bg-blue-600 transition duration-150 ease-in-out active:shadow-inner">
+                    <!-- Maximize Icon -->
+                    <svg id="wideIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-maximize-2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>
+                    <span id="wideText">Wide View</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Matrix Background Logic ---
+        const matrixCanvas = document.getElementById('matrixCanvas');
+        const matrixCtx = matrixCanvas.getContext('2d');
+        
+        let matrixWidth = window.innerWidth;
+        let matrixHeight = window.innerHeight;
+        let fontSize = 18;
+        let columns = 0;
+        let drops = [];
+
+        // UPDATED: Using only numbers (0-9)
+        const characters = '0123456789'; 
+        
+        /**
+         * Sets canvas size and re-initializes the drops array for the Matrix effect.
+         */
+        function setCanvasSize() {
+            matrixWidth = window.innerWidth;
+            matrixHeight = window.innerHeight;
+            matrixCanvas.width = matrixWidth;
+            matrixCanvas.height = matrixHeight;
+            
+            columns = Math.floor(matrixWidth / fontSize);
+            drops = [];
+            for (let i = 0; i < columns; i++) {
+                drops[i] = 1; 
+            }
+        }
+        
+        setCanvasSize(); // Initial setup
+        window.addEventListener('resize', setCanvasSize);
+
+        let lastMatrixTime = 0;
+        // Animation delay for the Matrix effect (25ms = 50% faster than 50ms)
+        const matrixFrameDelay = 25; 
+
+        // Consolidated to a single, pure neon green
+        const BRIGHT_GREEN = '#00FF41'; // Pure Neon Green
+
+        /**
+         * Draws one frame of the Matrix code rain animation.
+         */
+        function drawMatrix() {
+            // Semi-transparent black background to create trails (fading effect)
+            matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.05)'; 
+            matrixCtx.fillRect(0, 0, matrixWidth, matrixHeight);
+
+            // Set font style and the single bright green color
+            matrixCtx.font = fontSize + 'px monospace';
+            matrixCtx.fillStyle = BRIGHT_GREEN;
+
+            for (let i = 0; i < drops.length; i++) {
+                // Pick a random character for the current drop
+                const text = characters.charAt(Math.floor(Math.random() * characters.length));
+                
+                // Draw the character using the single bright green color
+                matrixCtx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                // Increment the drop position
+                drops[i]++;
+                
+                // If the drop reaches the bottom, reset it to the top randomly
+                if (drops[i] * fontSize > matrixHeight && Math.random() > 0.98) {
+                    drops[i] = 0;
+                }
+            }
+        }
+
+        /**
+         * Main animation loop for the Matrix effect.
+         */
+        function matrixLoop(timestamp) {
+            requestAnimationFrame(matrixLoop);
+
+            // Throttle the matrix effect for a smoother, classic look (updates every 25ms)
+            if (timestamp - lastMatrixTime > matrixFrameDelay) {
+                lastMatrixTime = timestamp;
+                drawMatrix();
+            }
+        }
+        
+        // Start the matrix animation loop
+        matrixLoop(0);
+
+        // --- Minesweeper Game JavaScript Logic ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const minesRemainingDisplay = document.getElementById('minesRemaining');
+        const timerDisplay = document.getElementById('timerDisplay');
+        const startGameButton = document.getElementById('startGameButton');
+        const messageBox = document.getElementById('messageBox');
+        const modeEasyButton = document.getElementById('modeEasy');
+        const modeChallengeButton = document.getElementById('modeChallenge');
+        // New elements for Wide View toggle
+        const mainContentCard = document.getElementById('mainContentCard');
+        const toggleWideViewButton = document.getElementById('toggleWideViewButton');
+
+
+        // Game Configuration Options
+        const EASY_CONFIG = { id: 'easy', ROWS: 10, COLS: 10, MINES: 15 };
+        // Challenge Mode for ~200 squares (14x14 = 196) and proportional mine count
+        const CHALLENGE_CONFIG = { id: 'challenge', ROWS: 14, COLS: 14, MINES: 35 };
+
+        // Game State Variables (dynamically updated in initGame)
+        let currentConfig = EASY_CONFIG;
+        let ROWS;
+        let COLS;
+        let MINE_COUNT;
+        let TILE_SIZE;
+        let isWideMode = false; // State for the new Wide View feature
+
+        let board = [];
+        let gameStatus = 'ready'; // 'ready', 'playing', 'won', 'lost'
+        let minesRemaining;
+        let revealedTiles = 0;
+        let timerInterval;
+        let seconds = 0;
+        let firstClick = true;
+
+        // Colors for Numbers (Classic Minesweeper)
+        const NUMBER_COLORS = {
+            1: '#2563eb', // Blue-600
+            2: '#16a34a', // Green-600
+            3: '#dc2626', // Red-600
+            4: '#4f46e5', // Indigo-700
+            5: '#78350f', // Amber-900 (Brown)
+            6: '#0891b2', // Cyan-600 (Teal)
+            7: '#000000', // Black
+            8: '#4b5563'  // Gray-600
+        };
+        
+        // --- Utility Functions ---
+
+        /**
+         * Copies text to the clipboard using document.execCommand('copy').
+         * Returns true if successful, false otherwise.
+         * @param {string} text The text to copy.
+         * @returns {boolean}
+         */
+        function copyTextToClipboard(text) {
+            const tempInput = document.createElement('input');
+            tempInput.value = text;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            
+            let copied = false;
+            try {
+                copied = document.execCommand('copy'); 
+            } catch (err) {
+                console.error('Failed to copy text', err);
+            }
+            document.body.removeChild(tempInput);
+            return copied;
+        }
+
+        /**
+         * Copies the email address to the clipboard and provides visual feedback.
+         * @param {HTMLElement} element The anchor element clicked.
+         * @param {string} email The email string to copy.
+         * @returns {boolean} Returns false to prevent the default mailto action if copy succeeded.
+         */
+        function copyEmailToClipboard(element, email) {
+            const originalText = element.textContent;
+            const successMessage = 'Email Copied!';
+            
+            const copied = copyTextToClipboard(email);
+
+            if (copied) {
+                element.textContent = successMessage;
+                setTimeout(() => {
+                    element.textContent = originalText;
+                }, 1500);
+            }
+
+            // Return false to stop the default mailto action if the text was successfully copied.
+            return !copied; 
+        }
+
+        /**
+         * Shares the current page URL or game score using the Web Share API or copies it to the clipboard as a fallback.
+         */
+        function shareGame() {
+            const shareButton = document.getElementById('shareButton');
+            const shareTextSpan = document.getElementById('shareText');
+            const originalText = shareTextSpan.textContent;
+            
+            // Look for the image element now
+            const shareIconImg = shareButton.querySelector('img'); 
+            const tempIconId = 'tempSuccessIcon'; // ID for the checkmark SVG
+
+            // Success checkmark SVG for visual feedback on copy
+            const successIconHtml = `<svg id="${tempIconId}" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+            const successMessage = 'Link Copied!';
+
+            // Default content
+            let shareTitle = 'Play Minesweeper!';
+            let shareText = 'The site is under construction, but you can play Minesweeper while you wait! ' + window.location.href; 
+
+            // 1. Determine Content based on Game Status
+            if (gameStatus === 'won') {
+                shareTitle = `I WON Minesweeper (${ROWS}x${COLS}) in ${seconds}s!`;
+                shareText = `I cleared the ${ROWS}x${COLS} board in ${seconds} seconds! Can you beat my high score? Come play the Minesweeper minigame on this website under construction: ${window.location.href}`;
+            } else if (gameStatus === 'lost') {
+                shareTitle = `BOOM! Minesweeper Loss!`;
+                shareText = `I accidentally hit a mine on the ${ROWS}x${COLS} board! Come try to beat the Minesweeper minigame on this website under construction: ${window.location.href}`;
+            }
+
+            const shareData = {
+                title: shareTitle,
+                text: shareText,
+                url: window.location.href,
+            };
+
+            // 2. Fallback Copy Logic with Visual Feedback
+            const fallbackCopy = () => {
+                // We copy the full text message to the clipboard
+                const copied = copyTextToClipboard(shareText); 
+
+                if (copied) {
+                    shareTextSpan.textContent = successMessage;
+                    
+                    // Hide original image icon and insert success checkmark SVG
+                    if (shareIconImg) {
+                        shareIconImg.style.display = 'none';
+                        // Insert the success icon before the text span
+                        shareTextSpan.insertAdjacentHTML('beforebegin', successIconHtml);
+                    }
+
+                    setTimeout(() => {
+                        shareTextSpan.textContent = originalText;
+                        
+                        // Restore original image icon and remove checkmark SVG
+                        if (shareIconImg) {
+                            shareIconImg.style.display = '';
+                            const tempIcon = document.getElementById(tempIconId);
+                            if (tempIcon) {
+                                tempIcon.remove();
+                            }
+                        }
+                    }, 1500);
+                }
+            };
+
+            // 3. Execute Share
+            if (navigator.share) {
+                // Use the Web Share API (mobile devices)
+                navigator.share(shareData).catch((error) => {
+                    // Catch and ignore user aborts (name: 'AbortError'), but fallback on other errors
+                    if (error.name !== 'AbortError') {
+                        console.error('Web Share failed, falling back to copy:', error);
+                        fallbackCopy();
+                    }
+                });
+            } else {
+                // Fallback: Copy content to clipboard (desktop/older browsers)
+                fallbackCopy();
+            }
+        }
+
+
+        function drawTile(r, c, state) {
+            const x = c * TILE_SIZE;
+            const y = r * TILE_SIZE;
+
+            // Base unrevealed tile
+            if (!state.revealed) {
+                ctx.fillStyle = '#b5b5b5'; // Unrevealed color
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                // Draw highlight and shadow for 3D effect (construction theme)
+                ctx.strokeStyle = '#e0e0e0';
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#8c8c8c';
+                ctx.beginPath();
+                ctx.moveTo(x + TILE_SIZE, y);
+                ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE);
+                ctx.lineTo(x, y + TILE_SIZE);
+                ctx.stroke();
+
+                if (state.flagged) {
+                    // Draw Flag (Amber)
+                    ctx.fillStyle = '#f59e0b';
+                    ctx.fillRect(x + TILE_SIZE * 0.25, y + TILE_SIZE * 0.25, TILE_SIZE * 0.5, TILE_SIZE * 0.5);
+                    ctx.fillStyle = '#dc2626'; // Flag color
+                    ctx.fillRect(x + TILE_SIZE * 0.35, y + TILE_SIZE * 0.35, TILE_SIZE * 0.45, TILE_SIZE * 0.25);
+                }
+            } else {
+                // Revealed Tile
+                ctx.fillStyle = '#cccccc'; // Revealed color
+                ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                ctx.strokeStyle = '#aaaaaa';
+                ctx.strokeRect(x, y, TILE_SIZE, TILE_SIZE);
+
+
+                if (state.value === 'mine') {
+                    // Draw Mine (Red circle on black background)
+                    ctx.fillStyle = '#000000'; // Mine background
+                    ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    ctx.beginPath();
+                    ctx.arc(x + TILE_SIZE / 2, y + TILE_SIZE / 2, TILE_SIZE * 0.3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#dc2626'; // Red mine color
+                    ctx.fill();
+
+                    if (gameStatus === 'lost' && state.exploded) {
+                         ctx.fillStyle = 'rgba(255, 0, 0, 0.5)'; // Explosion highlight
+                         ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+                    }
+                } else if (state.value > 0) {
+                    // Draw Number
+                    ctx.fillStyle = NUMBER_COLORS[state.value];
+                    ctx.font = `bold ${TILE_SIZE * 0.6}px Inter`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(state.value.toString(), x + TILE_SIZE / 2, y + TILE_SIZE / 2);
+                }
+            }
+        }
+
+        function drawBoard() {
+            // Clear the canvas area used by the game
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Redraw the grid based on current ROWS/COLS
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    drawTile(r, c, board[r][c]);
+                }
+            }
+        }
+        
+        function updateStatus(newStatus, message = '') {
+            gameStatus = newStatus;
+            messageBox.textContent = message;
+            
+            let face = '😀'; // Ready/Playing
+            if (newStatus === 'lost') {
+                face = '😞'; // Lost
+                clearInterval(timerInterval);
+            } else if (newStatus === 'won') {
+                face = '😎'; // Won
+                clearInterval(timerInterval);
+            }
+            startGameButton.textContent = face;
+        }
+
+        function formatTime(s) {
+            return String(s).padStart(3, '0');
+        }
+
+        function startTimer() {
+            seconds = 0;
+            timerDisplay.textContent = formatTime(seconds);
+            clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                seconds++;
+                if (seconds > 999) seconds = 999;
+                timerDisplay.textContent = formatTime(seconds);
+            }, 1000);
+        }
+
+        /**
+         * Sets the game mode and restarts the game.
+         * Note: Replaced confirm() with a message box warning.
+         * @param {object} config - The configuration object (EASY_CONFIG or CHALLENGE_CONFIG).
+         */
+        function setGameMode(config) {
+            if (gameStatus === 'playing') {
+                // Prevent mode change while a game is actively running
+                updateStatus(gameStatus, 'Please reset the current game before changing modes!');
+                return;
+            } else {
+                currentConfig = config;
+                initGame();
+            }
+        }
+        
+        // --- Board Generation ---
+
+        function generateBoard(startRow, startCol) {
+            board = [];
+            revealedTiles = 0;
+
+            // 1. Initialize empty board
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = { value: 0, revealed: false, flagged: false, exploded: false };
+                }
+            }
+
+            // 2. Place Mines (avoiding the starting click area)
+            let minesPlaced = 0;
+            while (minesPlaced < MINE_COUNT) {
+                const r = Math.floor(Math.random() * ROWS);
+                const c = Math.floor(Math.random() * COLS);
+
+                // Prevent mine placement on starting tile and its immediate neighbors (3x3 area)
+                if (board[r][c].value !== 'mine' && 
+                    (Math.abs(r - startRow) > 1 || Math.abs(c - startCol) > 1)) {
+                    
+                    board[r][c].value = 'mine';
+                    minesPlaced++;
+                }
+            }
+
+            // 3. Calculate adjacent mine counts
+            for (let r = 0; r < ROWS; r++) {
+                for (let c = 0; c < COLS; c++) {
+                    if (board[r][c].value === 'mine') continue;
+
+                    let count = 0;
+                    // Check 8 neighbors
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            if (dr === 0 && dc === 0) continue;
+
+                            const nr = r + dr;
+                            const nc = c + dc;
+
+                            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) {
+                                if (board[nr][nc].value === 'mine') {
+                                    count++;
+                                }
+                            }
+                        }
+                    }
+                    board[r][c].value = count;
+                }
+            }
+        }
+        
+        // --- Game Logic ---
+        
+        function revealTile(r, c) {
+            // Out of bounds check
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+            const tile = board[r][c];
+
+            // Already revealed, or flagged, or game is over
+            if (tile.revealed || tile.flagged || gameStatus !== 'playing') return;
+
+            tile.revealed = true;
+            revealedTiles++;
+
+            if (tile.value === 'mine') {
+                tile.exploded = true;
+                gameOver(false); // Lost
+                return;
+            }
+
+            // If an empty tile is revealed, recursively reveal neighbors
+            if (tile.value === 0) {
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        if (dr === 0 && dc === 0) continue;
+                        revealTile(r + dr, c + dc);
+                    }
+                }
+            }
+            
+            drawBoard();
+            checkWin();
+        }
+
+        function checkWin() {
+            // Win condition: all non-mine tiles are revealed
+            if (revealedTiles === (ROWS * COLS) - MINE_COUNT) {
+                gameOver(true); // Won
+            }
+        }
+
+        function gameOver(isWin) {
+            clearInterval(timerInterval);
+            
+            if (isWin) {
+                updateStatus('won', `You Won in ${seconds} seconds!`);
+                // Flag all remaining mines
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (board[r][c].value === 'mine' && !board[r][c].flagged) {
+                            board[r][c].flagged = true;
+                        }
+                    }
+                }
+            } else {
+                updateStatus('lost', 'BOOM! Game Over.');
+                // Reveal all mines
+                for (let r = 0; r < ROWS; r++) {
+                    for (let c = 0; c < COLS; c++) {
+                        if (board[r][c].value === 'mine') {
+                            board[r][c].revealed = true;
+                        }
+                    }
+                }
+            }
+            drawBoard();
+        }
+
+        function toggleFlag(r, c) {
+            const tile = board[r][c];
+            if (tile.revealed || gameStatus !== 'playing') return;
+
+            tile.flagged = !tile.flagged;
+            minesRemaining += tile.flagged ? -1 : 1;
+            minesRemainingDisplay.textContent = formatTime(minesRemaining);
+            
+            drawBoard();
+        }
+
+        // --- Input Handling ---
+
+        function getTileCoords(event) {
+            const rect = canvas.getBoundingClientRect();
+            // Calculate coordinates relative to the canvas
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            const x = (event.clientX - rect.left) * scaleX;
+            const y = (event.clientY - rect.top) * scaleY;
+
+            // Convert to tile indices
+            const col = Math.floor(x / TILE_SIZE);
+            const row = Math.floor(y / TILE_SIZE);
+            
+            return { row, col };
+        }
+
+        function handleLeftClick(r, c) {
+            if (gameStatus === 'lost' || gameStatus === 'won') return;
+            // Also check for click outside the valid range of the current board
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+
+            if (gameStatus === 'ready' || firstClick) {
+                // Initialize board on first click, ensuring the starting spot is safe and clear
+                generateBoard(r, c);
+                startTimer();
+                updateStatus('playing', 'Mines away!');
+                firstClick = false;
+            }
+            
+            revealTile(r, c);
+        }
+
+        function handleRightClick(r, c) {
+            if (gameStatus !== 'playing') return;
+            // Check for click outside the valid range of the current board
+            if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return;
+
+            toggleFlag(r, c);
+        }
+
+        // Mouse Events (PC/Desktop)
+        canvas.addEventListener('mousedown', (e) => {
+            const { row, col } = getTileCoords(e);
+            if (e.button === 0) { // Left click
+                handleLeftClick(row, col);
+            } else if (e.button === 2) { // Right click
+                handleRightClick(row, col);
+            }
+        });
+
+        // Touch Events (Mobile)
+        let touchTimer;
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                e.preventDefault();
+                const { row, col } = getTileCoords(e.touches[0]);
+                
+                // Set a timer for long press (flagging)
+                touchTimer = setTimeout(() => {
+                    handleRightClick(row, col);
+                    clearTimeout(touchTimer); // Clear to prevent left click action on touchend
+                    touchTimer = null;
+                }, 500); 
+            }
+        });
+
+        canvas.addEventListener('touchend', (e) => {
+            // Only fire as a left-click if the long press timer hasn't triggered
+            if (touchTimer) {
+                e.preventDefault();
+                clearTimeout(touchTimer);
+                const { row, col } = getTileCoords(e.changedTouches[0]);
+                handleLeftClick(row, col);
+            }
+        });
+
+        /**
+         * Toggles the main content card width between max-w-lg and max-w-4xl
+         * and forces a game board redraw to fit the new container size.
+         */
+        function toggleWideView() {
+            const icon = document.getElementById('wideIcon');
+            const text = document.getElementById('wideText');
+
+            isWideMode = !isWideMode;
+
+            if (isWideMode) {
+                // Switch to Wide View
+                mainContentCard.classList.remove('max-w-lg');
+                mainContentCard.classList.add('max-w-4xl'); // Wide size
+                
+                text.textContent = 'Standard View';
+                // Minimize icon (Inlining SVG is necessary to replace the whole element)
+                icon.outerHTML = '<svg id="wideIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-minimize-2"><polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/><line x1="14" x2="21" y1="10" y2="3"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+            } else {
+                // Switch back to Standard View
+                mainContentCard.classList.remove('max-w-4xl');
+                mainContentCard.classList.add('max-w-lg');
+                
+                text.textContent = 'Wide View';
+                // Maximize icon
+                icon.outerHTML = '<svg id="wideIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-maximize-2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" x2="14" y1="3" y2="10"/><line x1="3" x2="10" y1="21" y2="14"/></svg>';
+            }
+
+            // Must re-initialize the game to resize the canvas correctly 
+            // We use a small delay to allow the CSS transition to complete.
+            setTimeout(initGame, 300); 
+        }
+
+        // --- Minesweeper Initialization and Mode Management ---
+
+        function initGame() {
+            clearInterval(timerInterval);
+            seconds = 0;
+
+            // NEW: Dynamically set canvas width based on its container's rendered width
+            const canvasContainer = canvas.parentNode;
+            // Use offsetWidth to get the actual rendered width in pixels
+            const containerWidth = canvasContainer.offsetWidth; 
+            
+            // Ensure canvas width and height are the same for square tiles
+            canvas.width = containerWidth;
+            canvas.height = containerWidth; 
+
+            // Set current game parameters based on the selected configuration
+            ROWS = currentConfig.ROWS;
+            COLS = currentConfig.COLS;
+            MINE_COUNT = currentConfig.MINES;
+            TILE_SIZE = canvas.width / COLS; // Recalculate tile size based on new COLS and canvas width
+
+            minesRemaining = MINE_COUNT;
+            
+            minesRemainingDisplay.textContent = formatTime(minesRemaining);
+            timerDisplay.textContent = formatTime(seconds);
+            
+            // Draw initial blank board
+            board = [];
+            for (let r = 0; r < ROWS; r++) {
+                board[r] = [];
+                for (let c = 0; c < COLS; c++) {
+                    board[r][c] = { value: 0, revealed: false, flagged: false, exploded: false };
+                }
+            }
+            
+            // Update button styles to reflect the active mode
+            document.querySelectorAll('.mode-button').forEach(btn => {
+                btn.classList.remove('mode-active', 'bg-blue-500', 'bg-gray-500');
+                btn.classList.add('bg-gray-500'); // Default to inactive color
+
+                if (btn.dataset.mode === currentConfig.id) {
+                    btn.classList.add('mode-active', 'bg-blue-500');
+                }
+            });
+
+            drawBoard();
+            firstClick = true;
+            updateStatus('ready', `Click the face to start the ${ROWS}x${COLS} game!`);
+        }
+        
+        // Reset Button
+        startGameButton.addEventListener('click', initGame);
+
+        // Mode Switch Buttons
+        modeEasyButton.addEventListener('click', () => setGameMode(EASY_CONFIG));
+        modeChallengeButton.addEventListener('click', () => setGameMode(CHALLENGE_CONFIG));
+
+        // Initial setup on window load
+        window.onload = initGame;
+    </script>
+</body>
+</html>
